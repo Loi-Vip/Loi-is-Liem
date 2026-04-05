@@ -1,0 +1,47 @@
+{
+  "intents": [
+    {
+      "tag": "chao_hoi",
+      "patterns": [
+        "chào",
+        "xin chào",
+        "hello",
+        "bot ơi",
+        "có ai không"
+      ],
+      "responses": [
+        "Xin chào, tôi có thể giúp gì cho bạn?",
+        "Chào bạn, rất vui được trò chuyện!",
+        "Tôi là bot, sẵn sàng hỗ trợ bạn."
+      ]
+    },
+    {
+      "tag": "tam_biet",
+      "patterns": [
+        "tạm biệt",
+        "hẹn gặp lại",
+        "bye",
+        "chúc ngủ ngon"
+      ],
+      "responses": [
+        "Tạm biệt và hẹn gặp lại!",
+        "Chào bạn, chúc bạn một ngày tốt lành.",
+        "Rất vui được nói chuyện với bạn!"
+      ]
+    },
+    {
+      "tag": "ten_bot",
+      "patterns": [
+        "bạn tên gì",
+        "tên của bot là gì",
+        "ai đã tạo ra bạn",
+        "tên bạn là gì"
+      ],
+      "responses": [
+        "Tôi là một trợ lý ảo, được tạo ra bởi một lập trình viên.",
+        "Bạn có thể gọi tôi là Bot.",
+        "Tôi không có tên chính thức, tôi là một chương trình máy tính."
+      ]
+    }
+  ]
+}
