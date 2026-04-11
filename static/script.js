@@ -5,6 +5,69 @@ const sendBtn = document.querySelector('.send-btn');
 // Remove welcome message when first real message is added
 let welcomeRemoved = false;
 
+// Store chat history separately for each style
+let messagesStyle1 = [];
+let messagesStyle2 = [];
+let currentStyle = 1; // Track current style
+
+// Initialize current style from server
+async function initializeStyle() {
+    try {
+        const response = await fetch('/api/get-style');
+        const data = await response.json();
+        currentStyle = data.style;
+        updateBackground(currentStyle);
+        updateStyleButton(currentStyle);
+        
+        // Load messages for current style (can be extended if server stores separate histories)
+        loadMessagesForCurrentStyle();
+    } catch (error) {
+        console.error('Error initializing style:', error);
+    }
+}
+
+// Load and display messages for current style
+function loadMessagesForCurrentStyle() {
+    const messagesForStyle = currentStyle === 1 ? messagesStyle1 : messagesStyle2;
+    
+    if (messagesForStyle.length === 0) {
+        // Show welcome message if no history
+        chatMessages.innerHTML = `
+            <div class="welcome-message">
+                <h2>Welcome to Chat</h2>
+                <p>Your intelligent chatbot assistant</p>
+                <p style="font-size: 12px; color: #999; margin-top: 10px;">Start typing to begin conversation...</p>
+            </div>
+        `;
+        welcomeRemoved = false;
+    } else {
+        // Display previous messages
+        chatMessages.innerHTML = '';
+        welcomeRemoved = true;
+        messagesForStyle.forEach(msg => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${msg.sender}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = msg.text;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = msg.time;
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(timeDiv);
+            
+            chatMessages.appendChild(messageDiv);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+}
+
+// Initialize on page load
+initializeStyle();
+
 // Go to premium link
 function goToPremium() {
     window.open('https://upload.wikimedia.org/wikipedia/commons/9/9c/Middle_finger_BNC.jpg', '_blank');
@@ -106,6 +169,15 @@ function addMessage(text, sender) {
     messageDiv.appendChild(timeDiv);
     
     chatMessages.appendChild(messageDiv);
+    
+    // Save message to the current style's array
+    const messageObject = { text, sender, time };
+    if (currentStyle === 1) {
+        messagesStyle1.push(messageObject);
+    } else {
+        messagesStyle2.push(messageObject);
+    }
+    
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
@@ -136,59 +208,33 @@ function removeTypingIndicator() {
     }
 }
 
-// Clear chat history
+// Clear chat history for current style
 function clearHistory() {
-    if (confirm('Are you sure you want to clear the entire chat history?')) {
+    if (confirm('Are you sure you want to clear the chat history for this style?')) {
+        // Clear the messages array for current style
+        if (currentStyle === 1) {
+            messagesStyle1 = [];
+        } else {
+            messagesStyle2 = [];
+        }
+        
+        // Update UI
+        chatMessages.innerHTML = `
+            <div class="welcome-message">
+                <h2>Welcome to Chat</h2>
+                <p>Your intelligent chatbot assistant</p>
+                <p style="font-size: 12px; color: #999; margin-top: 10px;">Start typing to begin conversation...</p>
+            </div>
+        `;
+        welcomeRemoved = false;
+        messageInput.value = '';
+        messageInput.focus();
+        
+        // Optionally notify server to clear backend history for this style too
         fetch('/api/clear-history', {
             method: 'POST'
         })
-        .then(response => response.json())
-        .then(data => {
-            chatMessages.innerHTML = `
-                <div class="welcome-message">
-                    <h2>Welcome to Chat</h2>
-                    <p>Your intelligent chatbot assistant</p>
-                    <p style="font-size: 12px; color: #999; margin-top: 10px;">Start typing to begin conversation...</p>
-                </div>
-            `;
-            welcomeRemoved = false;
-            messageInput.value = '';
-            messageInput.focus();
-        })
         .catch(error => console.error('Error:', error));
-    }
-}
-
-// Shutdown server
-async function shutdownServer() {
-    if (!confirm('Bạn có chắc chắn muốn tắt bot không? Lịch sử chat sẽ được lưu.')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/shutdown', {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        alert('Bot đang tắt... Cửa sổ sẽ đóng sau vài giây.');
-        
-        // Change button appearance to show shutdown in progress
-        const shutdownBtn = document.querySelector('.shutdown-btn');
-        if (shutdownBtn) {
-            shutdownBtn.disabled = true;
-            shutdownBtn.textContent = '⏳ Đang tắt...';
-            shutdownBtn.style.opacity = '0.5';
-        }
-        
-        // Close window after 2 seconds
-        setTimeout(() => {
-            window.close();
-        }, 2000);
-        
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Lỗi khi tắt bot. Vui lòng thử lại hoặc dùng Ctrl+C');
     }
 }
 
@@ -224,17 +270,53 @@ async function toggleStyle() {
             throw new Error('Failed to change style');
         }
         
-        const data = await response.json();
+        // Update current style
+        currentStyle = newStyle;
+        
+        // Clear chat display but keep history stored
+        chatMessages.innerHTML = '';
+        welcomeRemoved = false;
+        
+        // Display messages of the new style
+        const messagesForStyle = currentStyle === 1 ? messagesStyle1 : messagesStyle2;
+        
+        if (messagesForStyle.length === 0) {
+            // Show welcome message if no history
+            chatMessages.innerHTML = `
+                <div class="welcome-message">
+                    <h2>Welcome to Chat</h2>
+                    <p>Your intelligent chatbot assistant</p>
+                    <p style="font-size: 12px; color: #999; margin-top: 10px;">Start typing to begin conversation...</p>
+                </div>
+            `;
+        } else {
+            // Display previous messages
+            welcomeRemoved = true;
+            messagesForStyle.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.sender}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                contentDiv.textContent = msg.text;
+                
+                const timeDiv = document.createElement('div');
+                timeDiv.className = 'message-time';
+                timeDiv.textContent = msg.time;
+                
+                messageDiv.appendChild(contentDiv);
+                messageDiv.appendChild(timeDiv);
+                
+                chatMessages.appendChild(messageDiv);
+            });
+        }
         
         // Update toggle switch UI and background
         updateStyleButton(newStyle);
         updateBackground(newStyle);
         
-        // Clear chat display (but keep data on backend)
-        chatMessages.innerHTML = '';
-        messageInput.value = '';
+        // Focus input
         messageInput.focus();
-        welcomeRemoved = false;
         
     } catch (error) {
         console.error('Error:', error);

@@ -227,29 +227,6 @@ def get_style():
     return jsonify({'style': current_style, 'style_name': style_name})
 
 
-@app.route('/api/shutdown', methods=['POST'])
-def shutdown():
-    """Shutdown the server"""
-    # Save chat history before shutdown
-    save_chat_history()
-    
-    # Get shutdown function while in request context
-    func = request.environ.get('werkzeug.server.shutdown')
-    
-    # Shutdown in a separate thread to allow response to be sent
-    def shutdown_server(shutdown_func):
-        import time
-        time.sleep(0.5)  # Give time for response to be sent
-        if shutdown_func is None:
-            import os
-            os._exit(0)  # Fallback: force exit
-        else:
-            shutdown_func()
-    
-    Thread(target=shutdown_server, args=(func,), daemon=True).start()
-    return jsonify({'status': 'Server shutting down...'})
-
-
 if __name__ == '__main__':
     # Load initial history
     load_chat_history()
